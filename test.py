@@ -18,9 +18,6 @@ hsv = cv2.cvtColor(view1, cv2.COLOR_BGR2HSV)
 mask_yellow = cv2.inRange(hsv, lower_yellow, upper_yellow)
 mask_white = cv2.inRange(hsv, lower_white, upper_white)
 
-print(mask_white.sum())
+print(mask_white.shape) #120,160
 
-'''
-cv2.imwrite( "yellow_mask.jpg" , mask_yellow)
-cv2.imwrite( "white_mask.jpg" , mask_white)
-'''
+

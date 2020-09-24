@@ -9,6 +9,7 @@ from services.utils import imwrite
 log = []
 
 
+
 def image_to_speed(view1, view2, state):
     """This is the function where you should write your code to 
     control your car.
@@ -31,16 +32,46 @@ def image_to_speed(view1, view2, state):
     Returns:
         (left, right): your car wheels' speed
     """
+    # ------use a dictionary to store info -------
     if state.get() is None:
-        state.set(1)
+        info = {"step":0, "sign":35}
+        state.set(info)
     else:
-        state.set(state.get() + 1)
-    log.append("#" + str(state.get()))
-    imwrite(str(state.get()) + '-1.jpg', view1)
-    imwrite(str(state.get()) + '-2.jpg', view2)
+        info = state.get()
+    log.append("#" + str(info["step"]))
+    log.append("#" + str(info["sign"]))
+    
+    # imwrite(str(state.get()) + '-1.jpg', view1)
+    # imwrite(str(state.get()) + '-2.jpg', view2)
 
+    info["step"]+=1
+    state.set(info)
 
-    left_speed = right_speed = 1
+    # -----------direction control-----------------
+
+    lower_yellow = np.array([26, 43, 46])
+    upper_yellow = np.array([34, 255, 255])
+    lower_white = np.array([0,0,221])
+    upper_white = np.array([180,30,255])
+
+    hsv = cv2.cvtColor(view1, cv2.COLOR_BGR2HSV)
+    mask_yellow = cv2.inRange(hsv, lower_yellow, upper_yellow)
+    mask_white = cv2.inRange(hsv, lower_white, upper_white)
+
+    # print(mask_white.shape) #120,160
+
+    if mask_white[0:60,40:120].sum() >10:
+        left_speed = 0
+        right_speed = 0.5
+
+    elif mask_yellow[0:60,40:120].sum() >10:
+        left_speed = 0.5
+        right_speed = 0
+
+    else :
+        left_speed = right_speed = 0.5
+    #----------------------------------------------
+
 
 
     if view2 is not None:
@@ -54,13 +85,20 @@ def image_to_speed(view1, view2, state):
         detector = detection()
         im = view2
         rect = detector.ensemble(im)
+        
         if rect:
             xmin, ymin, xmax, ymax = rect
-            if xmax < 600:
+            log.append("!!!!!:" + str(xmax))
+            if xmax < 6000:
                 roi = im[ymin:ymax, xmin:xmax, :]
                 id_num = svm.predict(roi, "hog")
                 sign_flag = 1
                 log.append("id:" + str(id_num))
                 log.append(sign_classes[id_num])
+        else:
+
+            sign_flag = 0
+
+
 
     return left_speed, right_speed
