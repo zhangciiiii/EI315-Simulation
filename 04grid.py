@@ -39,8 +39,9 @@ def image_to_speed(view1, view2, state):
     imwrite(str(state.get()) + '-1.jpg', view1)
     imwrite(str(state.get()) + '-2.jpg', view2)
 
+
     left_speed = right_speed = 1
-    left_speed = 2
+
 
     if view2 is not None:
         sign_classes = {
@@ -53,10 +54,8 @@ def image_to_speed(view1, view2, state):
         detector = detection()
         im = view2
         rect = detector.ensemble(im)
-        
         if rect:
             xmin, ymin, xmax, ymax = rect
-
             if xmax < 600:
                 roi = im[ymin:ymax, xmin:xmax, :]
                 id_num = svm.predict(roi, "hog")
