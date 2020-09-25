@@ -34,18 +34,16 @@ def image_to_speed(view1, view2, state):
     """
     # ------use a dictionary to store info -------
     if state.get() is None:
-        info = {"step":0, "sign":35}
+        info = {"step":0, "sign":35, "sign_flags":[], "current_sign":35}
         state.set(info)
     else:
         info = state.get()
-    log.append("#" + str(info["step"]))
-    log.append("#" + str(info["sign"]))
-    
+       
     # imwrite(str(state.get()) + '-1.jpg', view1)
     # imwrite(str(state.get()) + '-2.jpg', view2)
 
-    info["step"]+=1
-    state.set(info)
+    info["step"]+=1   
+    log.append("# Step:"+str(info["step"]) )
 
     # -----------direction control-----------------
 
@@ -73,7 +71,7 @@ def image_to_speed(view1, view2, state):
     #----------------------------------------------
 
 
-
+    #----------sign detection---------------------
     if view2 is not None:
         sign_classes = {
             14: 'Stop',
@@ -88,17 +86,31 @@ def image_to_speed(view1, view2, state):
         
         if rect:
             xmin, ymin, xmax, ymax = rect
-            log.append("!!!!!:" + str(xmax))
-            if xmax < 6000:
+            sign_flag = 1
+            if xmax > 600:
                 roi = im[ymin:ymax, xmin:xmax, :]
                 id_num = svm.predict(roi, "hog")
-                sign_flag = 1
-                log.append("id:" + str(id_num))
+                
+                #log.append("id:" + str(id_num))
                 log.append(sign_classes[id_num])
+                info["current_sign"] = id_num
         else:
-
             sign_flag = 0
+    #--------------------------------------------
 
 
+    #----------update the info-------------------
+    if len(info["sign_flags"]) >= 20:
+        info["sign_flags"].pop(0)
+        info["sign_flags"].append(sign_flag)
+    else:
+        info["sign_flags"].append(sign_flag)
+    
+    
+    state.set(info)
+    log.append("## :"+str(len(info["sign_flags"])) )
+    #-------------------------------------------
+
+    
 
     return left_speed, right_speed
