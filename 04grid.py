@@ -141,9 +141,9 @@ def image_to_speed(view1, view2, state):
             left_speed = right_speed = 0.5
 
     '''sign: straight'''
-    if 35 in info["sign_counters"][0:3]:        
-        left_speed = 0.5
-        right_speed = 0.5
+    if 35 in info["sign_counters"][0:10]:        
+        left_speed = 1
+        right_speed = 1
 
     '''sign: right'''
     if 33 in info["sign_counters"][0:3]:        
