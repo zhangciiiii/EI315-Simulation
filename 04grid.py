@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+from collections import Counter
 from services.detection import detection
 from services.svm import SVM
 from services.utils import imwrite
@@ -34,7 +35,7 @@ def image_to_speed(view1, view2, state):
     """
     # ------use a dictionary to store info -------
     if state.get() is None:
-        info = {"step":0, "sign":35, "sign_flags":[], "current_sign":35}
+        info = {"step":0, "sign":35, "sign_flags":[], "sign_counters":[], "current_tempt":0}
         state.set(info)
     else:
         info = state.get()
@@ -44,32 +45,6 @@ def image_to_speed(view1, view2, state):
 
     info["step"]+=1   
     log.append("# Step:"+str(info["step"]) )
-
-    # -----------direction control-----------------
-
-    lower_yellow = np.array([26, 43, 46])
-    upper_yellow = np.array([34, 255, 255])
-    lower_white = np.array([0,0,221])
-    upper_white = np.array([180,30,255])
-
-    hsv = cv2.cvtColor(view1, cv2.COLOR_BGR2HSV)
-    mask_yellow = cv2.inRange(hsv, lower_yellow, upper_yellow)
-    mask_white = cv2.inRange(hsv, lower_white, upper_white)
-
-    # print(mask_white.shape) #120,160
-
-    if mask_white[0:60,40:120].sum() >10:
-        left_speed = 0
-        right_speed = 0.5
-
-    elif mask_yellow[0:60,40:120].sum() >10:
-        left_speed = 0.5
-        right_speed = 0
-
-    else :
-        left_speed = right_speed = 0.5
-    #----------------------------------------------
-
 
     #----------sign detection---------------------
     if view2 is not None:
@@ -84,16 +59,27 @@ def image_to_speed(view1, view2, state):
         im = view2
         rect = detector.ensemble(im)
         
+        id_num = 0
         if rect:
             xmin, ymin, xmax, ymax = rect
             sign_flag = 1
-            if xmax > 600:
+            if xmax > 500:
                 roi = im[ymin:ymax, xmin:xmax, :]
                 id_num = svm.predict(roi, "hog")
+
+                if info["current_tempt"]==0:
+                    info["current_tempt"] = id_num
+                    log.append('current tempt:'+str(info["current_tempt"]))
+
+                elif info["current_tempt"]!=id_num:
+                    id_num = info["current_tempt"]
+                    log.append('switch:'+str(id_num) + ' to '+str(info["current_tempt"]))
                 
                 #log.append("id:" + str(id_num))
                 log.append(sign_classes[id_num])
-                info["current_sign"] = id_num
+                
+                
+
         else:
             sign_flag = 0
     #--------------------------------------------
@@ -105,12 +91,73 @@ def image_to_speed(view1, view2, state):
         info["sign_flags"].append(sign_flag)
     else:
         info["sign_flags"].append(sign_flag)
+
+    if len(info["sign_counters"]) >= 30:
+        info["sign_counters"].pop(0)
+        info["sign_counters"].append(id_num)
+    else:
+        info["sign_counters"].append(id_num)
     
     
     state.set(info)
-    log.append("## :"+str(len(info["sign_flags"])) )
+    
     #-------------------------------------------
 
+
+    # -----------direction control-----------------
+
+    lower_yellow = np.array([26, 43, 46])
+    upper_yellow = np.array([34, 255, 255])
+    lower_white = np.array([0,0,221])
+    upper_white = np.array([180,30,255])
+
+    hsv = cv2.cvtColor(view1, cv2.COLOR_BGR2HSV)
+    mask_yellow = cv2.inRange(hsv, lower_yellow, upper_yellow)
+    mask_white = cv2.inRange(hsv, lower_white, upper_white)
+
+
+    '''normal'''
+    if  sum(info["sign_flags"]) == 0:
+        info["current_tempt"]=0
+        log.append('current tempt:'+str(info["current_tempt"]))
+
+    if mask_white[0:60,40:120].sum() >10:
+        left_speed = 0
+        right_speed = 0.5
+
+    elif mask_yellow[0:60,40:120].sum() >10:
+        left_speed = 0.5
+        right_speed = 0
+
+    else :
+        left_speed = right_speed = 0.5
     
+    ''' meet the sign'''
+    if  sum(info["sign_flags"]) != 0:
+        if mask_yellow[0:60,40:120].sum() >10:
+            left_speed = 0.1
+            right_speed = 0
+        else:
+            left_speed = right_speed = 0.5
+
+    '''sign: straight'''
+    if 35 in info["sign_counters"][0:3]:        
+        left_speed = 0.5
+        right_speed = 0.5
+
+    '''sign: right'''
+    if 33 in info["sign_counters"][0:3]:        
+        left_speed = 0.5
+        right_speed = 0.0
+
+    '''sign: left'''
+    if 34 in info["sign_counters"][0:3]:        
+        left_speed = 0.0
+        right_speed = 0.2
+
+    #----------------------------------------------
+
+    #imwrite(str(info["step"]) + '.jpg', mask_white[60:,40:120])
+    # log.append(str(mask_white[60:,40:120].sum()))
 
     return left_speed, right_speed
