@@ -119,14 +119,14 @@ def image_to_speed(view1, view2, state):
     '''normal'''
     if  sum(info["sign_flags"]) == 0:
         info["current_tempt"]=0
-        log.append('current tempt:'+str(info["current_tempt"]))
+        log.append('normal'+str(info["current_tempt"]))
 
     if mask_white[0:60,40:120].sum() >10:
         left_speed = 0
-        right_speed = 0.5
+        right_speed = 0.3
 
-    elif mask_yellow[0:60,40:120].sum() >10:
-        left_speed = 0.5
+    elif mask_yellow[0:90,40:120].sum() >10:
+        left_speed = 0.3
         right_speed = 0
 
     else :
@@ -134,8 +134,9 @@ def image_to_speed(view1, view2, state):
     
     ''' meet the sign'''
     if  sum(info["sign_flags"]) != 0:
+        
         if mask_yellow[0:60,40:120].sum() >10:
-            left_speed = 0.1
+            left_speed = 0.05
             right_speed = 0
         else:
             left_speed = right_speed = 0.5
@@ -146,14 +147,20 @@ def image_to_speed(view1, view2, state):
         right_speed = 1
 
     '''sign: right'''
-    if 33 in info["sign_counters"][0:3]:        
-        left_speed = 0.5
+    if 33 in info["sign_counters"][0:5]:        
+        left_speed = 0.7
         right_speed = 0.0
+        log.append('sign: right')
 
     '''sign: left'''
-    if 34 in info["sign_counters"][0:3]:        
+    if 34 in info["sign_counters"][2:8]:        
         left_speed = 0.0
-        right_speed = 0.2
+        right_speed = 0.5
+        log.append('sign: left')
+    elif 34 in info["sign_counters"][0:2]:        
+        left_speed = 1.0
+        right_speed = 1.0
+        log.append('sign: after left')
 
     #----------------------------------------------
 
